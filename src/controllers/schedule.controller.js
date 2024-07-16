@@ -128,6 +128,8 @@ export const getChanges = async (request, response) => {
   try {
     const changes = await logModel.find();
 
+    console.log(changes);
+
     response.status(200).send({ status: "Ok", changes });
   } catch (error) {
     response.status(400).send(error);
