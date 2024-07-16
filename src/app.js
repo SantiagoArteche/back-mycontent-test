@@ -7,7 +7,10 @@ import "dotenv/config";
 const app = express();
 const PORT = process.env.PORT;
 
-const whiteList = new Set(["https://front-mycontent-test.vercel.app"]);
+const whiteList = new Set([
+  "https://front-mycontent-test.vercel.app",
+  "https://mycontent-test2.vercel.app",
+]);
 const corsOptions = {
   origin: function (origin, callback) {
     if (whiteList.has(origin) || !origin) {

@@ -1,0 +1,42 @@
+{
+  "name": "Notificación de Wins por correo electrónico",
+  "description": "Envía un correo electrónico cada vez que se registra un nuevo Win en Google Sheets.",
+  "modules": [
+    {
+      "name": "Watch_Rows",
+      "type": "trigger",
+      "settings": {
+        "app": "google_sheets",
+        "event": "watch_rows",
+        "spreadsheet_id": "1gwk6Jzk06_Wa5LhsOgeV9Sz1VibT_E6HcqMW3YLrjEQ",
+        "worksheet_name": "Hoja 1",
+        "maximum_rows_to_watch": 1,
+        "watch_for_new_rows_only": true
+      }
+    },
+    {
+      "name": "Router",
+      "type": "router",
+      "settings": {
+        "conditions": [
+          {
+            "column": "Win",
+            "operator": "=",
+            "value": "Sí"
+          }
+        ]
+      }
+    },
+    {
+      "name": "Send_an_Email",
+      "type": "action",
+      "settings": {
+        "app": "gmail",
+        "event": "send_an_email",
+        "to": "ivan@mycontent.agency",
+        "subject": "¡Nuevo Win!",
+        "body": "Hola Ivan,\n\n¡Felicitaciones por tu nuevo Win!\n\nSaludos,\nSantiago Arteche"
+      }
+    }
+  ]
+}

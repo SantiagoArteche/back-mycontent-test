@@ -1,13 +1,7 @@
 import { GoogleAuth } from "google-auth-library";
-import { google } from "googleapis";
 import { sheets } from "googleapis/build/src/apis/sheets/index.js";
 import { logModel } from "../models/logs.models.js";
 import "dotenv/config";
-import path from "path";
-import { fileURLToPath } from "url";
-
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
 
 const auth = new GoogleAuth({
   credentials: {
@@ -37,8 +31,9 @@ export const getGoogleSheet = async (request, response) => {
 };
 
 export const updateGoogleSheet = async (request, response) => {
-  const { row, state, closer } = request.body;
+  const { row, state, closer, call } = request.body;
 
+  console.log(call);
   const estados = [
     "En llamada",
     "Win",
@@ -49,7 +44,7 @@ export const updateGoogleSheet = async (request, response) => {
 
   if (!estados.includes(state)) {
     return response.status(400).send({
-      status: "Ok",
+      status: "Error",
       msg: "Los estados posibles solo pueden ser " + `[${estados}]`,
     });
   }
@@ -95,6 +90,15 @@ export const updateGoogleSheet = async (request, response) => {
       },
     });
 
+    await sheet.spreadsheets.values.update({
+      spreadsheetId: "1gwk6Jzk06_Wa5LhsOgeV9Sz1VibT_E6HcqMW3YLrjEQ",
+      range: `Hoja 1!J${row}`,
+      valueInputOption: "USER_ENTERED",
+      resource: {
+        values: [[call]],
+      },
+    });
+
     const msg = `Estado de la fila ${row} correspondiente al email ${email} actualizado`;
 
     await changesRegister(msg);
@@ -126,6 +130,95 @@ export const getChanges = async (request, response) => {
 
     response.status(200).send({ status: "Ok", changes });
   } catch (error) {
+    response.status(400).send(error);
+  }
+};
+
+export const updateByEmail = async (request, response) => {
+  const { email } = request.params;
+  const { state, call } = request.body;
+
+  try {
+    const { data } = await sheet.spreadsheets.values.get({
+      spreadsheetId: "1gwk6Jzk06_Wa5LhsOgeV9Sz1VibT_E6HcqMW3YLrjEQ",
+      range: "Hoja 1",
+    });
+
+    const values = await data.values;
+    const index = values.findIndex((sheet) => sheet[1] === email);
+
+    if (index !== -1) {
+      await sheet.spreadsheets.values.update({
+        spreadsheetId: "1gwk6Jzk06_Wa5LhsOgeV9Sz1VibT_E6HcqMW3YLrjEQ",
+        range: `Hoja 1!I${index + 1}`,
+        valueInputOption: "USER_ENTERED",
+        resource: {
+          values: [[state]],
+        },
+      });
+
+      await sheet.spreadsheets.values.update({
+        spreadsheetId: "1gwk6Jzk06_Wa5LhsOgeV9Sz1VibT_E6HcqMW3YLrjEQ",
+        range: `Hoja 1!J${index + 1}`,
+        valueInputOption: "USER_ENTERED",
+        resource: {
+          values: [[call]],
+        },
+      });
+      return response.status(200).send({ status: "Ok", index });
+    } else {
+      return response.status(400).send({ status: "Error", msg: "Bad Request" });
+    }
+  } catch (error) {
+    response.status(400).send(error);
+  }
+};
+
+export const getByCloser = async (request, response) => {
+  const { closer } = request.params;
+  try {
+    const { data } = await sheet.spreadsheets.values.get({
+      spreadsheetId: "1gwk6Jzk06_Wa5LhsOgeV9Sz1VibT_E6HcqMW3YLrjEQ",
+      range: "Hoja 1",
+    });
+
+    const values = await data.values;
+    const leadsCloser = [];
+
+    for (let i = 0; i < values.length; i++) {
+      const [day, month, year] = values[i][0].split("/").join("-").split("-");
+
+      if (year < 2024) {
+        const [day, month, year] = values[i][0]
+          .split("/")
+          .join("-")
+          .split("-")
+          .reverse();
+        values[i][0] = new Date(year, month - 1, day);
+      } else {
+        values[i][0] = new Date(year, month - 1, day);
+      }
+
+      for (let j = 0; j < values.length; j++) {
+        if (values[i][j] === closer) {
+          leadsCloser.push(values[i]);
+        }
+      }
+    }
+
+    leadsCloser.sort((a, b) => {
+      const yearDiff = a[0].getFullYear() - b[0].getFullYear();
+      if (yearDiff !== 0) return yearDiff; // Sort ay year first
+
+      const monthDiff = a[0].getMonth() - b[0].getMonth();
+      if (monthDiff !== 0) return monthDiff; // Then ay month
+
+      return a[0].getDate() - b[0].getDate(); // Finally by day
+    });
+
+    return response.status(200).send(leadsCloser);
+  } catch (error) {
+    console.log(error);
     response.status(400).send(error);
   }
 };
