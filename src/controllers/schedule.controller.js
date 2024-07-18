@@ -210,12 +210,12 @@ export const getByCloser = async (request, response) => {
 
     leadsCloser.sort((a, b) => {
       const yearDiff = a[0].getFullYear() - b[0].getFullYear();
-      if (yearDiff !== 0) return yearDiff; // Sort ay year first
+      if (yearDiff !== 0) return yearDiff;
 
       const monthDiff = a[0].getMonth() - b[0].getMonth();
-      if (monthDiff !== 0) return monthDiff; // Then ay month
+      if (monthDiff !== 0) return monthDiff;
 
-      return a[0].getDate() - b[0].getDate(); // Finally by day
+      return a[0].getDate() - b[0].getDate();
     });
 
     return response.status(200).send(leadsCloser);
